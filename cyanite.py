@@ -100,10 +100,10 @@ class CyaniteFinder(object):
                              params={'query': query.pattern}).json()
         for path in paths:
             if path['leaf']:
-                yield CyaniteLeafNode(path['path'],
-                                      CyaniteReader(path['path']))
+                yield CyaniteLeafNode(path['id'],
+                                      CyaniteReader(path['id']))
             else:
-                yield BranchNode(path['path'])
+                yield BranchNode(path['id'])
 
     def fetch_multi(self, nodes, start_time, end_time):
 

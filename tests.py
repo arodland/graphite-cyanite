@@ -18,9 +18,9 @@ class CyaniteTests(TestCase):
     @patch('requests.get')
     def test_metrics(self, get):
         get.return_value.json.return_value = [
-            {'path': 'foo.',
+            {'id': 'foo.',
              'leaf': 0},
-            {'path': 'foo.bar',
+            {'id': 'foo.bar',
              'leaf': 1},
         ]
         finder = CyaniteFinder({'cyanite': {'url': 'http://host:8080'}})
@@ -51,9 +51,9 @@ class CyaniteTests(TestCase):
     @patch('requests.get')
     def test_fetch_multi(self, get):
         get.return_value.json.return_value = [
-            {'path': 'foo.baz',
+            {'id': 'foo.baz',
              'leaf': 1},
-            {'path': 'foo.bar',
+            {'id': 'foo.bar',
              'leaf': 1},
         ]
 
