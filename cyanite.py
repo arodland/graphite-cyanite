@@ -1,5 +1,6 @@
 import itertools
 import time
+import pylru
 
 try:
     from graphite_api.intervals import Interval, IntervalSet
@@ -50,7 +51,7 @@ class URLs(object):
         return '{0}/metrics'.format(self.host)
 urls = None
 urllength = 8000
-
+leafcache = pylru.lrucache(10000)
 
 class CyaniteReader(object):
     __slots__ = ('path',)
@@ -96,24 +97,29 @@ class CyaniteFinder(object):
         urls = URLs(urls)
 
     def find_nodes(self, query):
-        paths = requests.get(urls.paths,
-                             params={'query': query.pattern}).json()
-        for path in paths:
-            if path['leaf']:
-                yield CyaniteLeafNode(path['id'],
+        leafpath = leafcache.get(query.pattern);
+        if leafpath:
+            yield CyaniteLeafNode(query.pattern, CyaniteReader(query.pattern))
+        else:
+            paths = requests.get(urls.paths,
+                             params={'query': query.pattern}, timeout=2).json()
+            for path in paths:
+                if path['leaf']:
+                    leafcache[path['id']] = True
+                    yield CyaniteLeafNode(path['id'],
                                       CyaniteReader(path['id']))
-            else:
-                yield BranchNode(path['id'])
+                else:
+                    yield BranchNode(path['id'])
 
     def fetch_multi(self, nodes, start_time, end_time):
 
         paths = [node.path for node in nodes]
         data = {}
         for pathlist in chunk(paths, urllength):
-            tmpdata = requests.get(urls.metrics,
-                                   params={'path': pathlist,
+            tmpdata = requests.post(urls.metrics,
+                                   data={'path': pathlist,
                                            'from': start_time,
-                                           'to': end_time}).json()
+                                           'to': end_time}, timeout=10).json()
             if 'error' in tmpdata:
                 return (start_time, end_time, end_time - start_time), {}
 
